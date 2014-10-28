@@ -8,8 +8,32 @@ var watchingObjects = [];
 
 var clock = new THREE.Clock();
 
-init();
-animate();
+// String utils
+
+function hasPrefix(str, prefix) {
+  return str.indexOf(prefix) == 0;
+}
+
+// Architect code
+
+var ArchiDom = function(dom){
+  this.dom = dom;
+  this.dom.style.position = 'absolute';
+  this.getArchiCoord();
+}
+
+ArchiDom.prototype.getArchiCoord = function() {
+  for(var i = 0; i < this.dom.classList.length; i++) {
+    var classname = this.dom.classList[i];
+    if(hasPrefix(classname, 'archi-x-')) {
+      var strs = classname.split('-');
+      this.coordX = [parseInt(strs[2]), parseInt(strs[3])];
+    } else if (hasPrefix(classname, 'archi-y-')) {
+      var strs = classname.split('-');
+      this.coordY = [parseInt(strs[2]), parseInt(strs[3])];
+    }
+  }
+}
 
 function setHelixPosition(object, height, angle, radius) {
 
@@ -20,11 +44,43 @@ function setHelixPosition(object, height, angle, radius) {
   object.position.z = radius * Math.cos( phi );
 
   var vector = new THREE.Vector3();
-  vector.x = 0;//object.position.x * 2;
+  vector.x = 0;
   vector.y = object.position.y;
-  vector.z = 0;//object.position.z * 2;
+  vector.z = 0;
 
   object.lookAt( vector );
+}
+
+ArchiDom.prototype.transform = function(obj) {
+  // var theta = this.coordX[0] * ArchiDom.strideX * 2;
+  // var height = this.coordY[0] * ArchiDom.strideY;
+
+  // obj.position.x = 100 * Math.sin(theta);
+  // obj.position.y = height;
+  // obj.position.z = 100 * Math.cos(theta);
+
+  // var facing = new THREE.Vector3();
+  // facing.x = 0;
+  // facing.y = height;
+  // facing.z = 0;
+
+  // obj.lookAt(facing);
+}
+
+ArchiDom.prototype.addToScene = function(sceneL, sceneR) {
+  this.cssObjL = new THREE.CSS3DObject(this.dom.cloneNode(true));
+  this.cssObjR = new THREE.CSS3DObject(this.dom.cloneNode(true));
+  sceneL.add(this.cssObjL);
+  sceneR.add(this.cssObjR);
+  this.transform(this.cssObjL);
+  this.transform(this.cssObjR);
+  this.dom.remove();
+}
+
+ArchiDom.setupWorld = function() {
+  this.strideY = 100;
+  this.strideZ = 100;
+  this.strideX = 15;
 }
 
 function initCssRenderer() {
@@ -48,26 +104,30 @@ function initCssRenderer() {
   container.appendChild( cssRendererR.domElement );
 }
 
-function addToScene(dom, transform) {
-  var L = new THREE.CSS3DObject(dom.cloneNode(true));
-  var R = new THREE.CSS3DObject(dom.cloneNode(true));
-  sceneL.add(L);
-  sceneR.add(R);
-  transform(L);
-  transform(R);
-  dom.remove();
+function findArchiDomsRecursive(root) {
+  var results = [];
+  for(var i = 0; i < root.children.length; i++) {
+    var child = root.children[i];
+      for(var j = 0; j < child.classList.length; j++) {
+        if(hasPrefix(child.classList[j], 'archi-')) {
+          results.push(new ArchiDom(child));
+          break;
+        }
+      }
+      results.concat(findArchiDomsRecursive(child));
+  }
+  return results;
 }
 
 function initHtmlPages() {
+  // set page background to black
   document.body.style.backgroundColor = "black";
 
-  addToScene(document.getElementById("block1"), function(obj) {
-    obj.scale.x = 3;
-    obj.scale.y = 3;
-    obj.scale.z = 3;
-    setHelixPosition(obj, -100, 0, 1200);
-    obj.lookAt(new THREE.Vector3());
-  })
+  // iterate through descendents to find top level DOMs with architect classname
+  var archiDoms = findArchiDomsRecursive(document.body);
+  for(var i = 0; i < archiDoms.length; i++) {
+    archiDoms[i].addToScene(sceneL, sceneR);
+  }
 }
 
 function init() {
@@ -161,3 +221,6 @@ function fullscreen() {
   //   _container.webkitRequestFullscreen();
   // }
 }
+
+init();
+animate();
