@@ -4,7 +4,7 @@ var element, container;
 
 var watchingObjects = [];
 
-// var testingMesh, testingGeo;
+var statDiv = document.getElementById('stat');
 
 var clock = new THREE.Clock();
 
@@ -20,19 +20,34 @@ var ArchiDom = function(dom){
   this.dom = dom;
   this.dom.style.position = 'absolute';
   this.getArchiCoord();
+  this.getHelixCoord();
 }
 
 ArchiDom.prototype.getArchiCoord = function() {
+  this.minCoord = new THREE.Vector3();
+  this.maxCoord = new THREE.Vector3();
   for(var i = 0; i < this.dom.classList.length; i++) {
     var classname = this.dom.classList[i];
     if(hasPrefix(classname, 'archi-x-')) {
       var strs = classname.split('-');
-      this.coordX = [parseInt(strs[2]), parseInt(strs[3])];
+      this.minCoord.x = parseInt(strs[2]);
+      this.maxCoord.x = parseInt(strs[3]);
     } else if (hasPrefix(classname, 'archi-y-')) {
       var strs = classname.split('-');
-      this.coordY = [parseInt(strs[2]), parseInt(strs[3])];
+      this.minCoord.y = parseInt(strs[2]);
+      this.maxCoord.y = parseInt(strs[3]);
     }
   }
+}
+
+ArchiDom.prototype.getHelixCoord = function() {
+  this.eucCoord = new THREE.Vector3();
+  // theta
+  this.eucCoord.x = ((this.minCoord.x + this.maxCoord.x) / 2 - ArchiDom.numStepsX / 2) * ArchiDom.strideX;
+  // height
+  this.eucCoord.y = ((this.minCoord.y + this.maxCoord.y) / 2 - ArchiDom.numStepsY / 2) * ArchiDom.strideY;
+  // depth
+  this.eucCoord.z = 5000;
 }
 
 function setHelixPosition(object, height, angle, radius) {
@@ -52,19 +67,20 @@ function setHelixPosition(object, height, angle, radius) {
 }
 
 ArchiDom.prototype.transform = function(obj) {
-  // var theta = this.coordX[0] * ArchiDom.strideX * 2;
-  // var height = this.coordY[0] * ArchiDom.strideY;
+  stat.innerHTML = this.eucCoord.x + " " + this.eucCoord.y + " " + this.eucCoord.z;
+  var theta = this.eucCoord.x;
+  var height = this.eucCoord.y;
 
-  // obj.position.x = 100 * Math.sin(theta);
-  // obj.position.y = height;
-  // obj.position.z = 100 * Math.cos(theta);
+  obj.position.x = this.eucCoord.z * Math.sin(theta);
+  obj.position.y = height;
+  obj.position.z = this.eucCoord.z * Math.cos(theta);
 
-  // var facing = new THREE.Vector3();
-  // facing.x = 0;
-  // facing.y = height;
-  // facing.z = 0;
+  var facing = new THREE.Vector3();
+  facing.x = 0;
+  facing.y = height;
+  facing.z = 0;
 
-  // obj.lookAt(facing);
+  obj.lookAt(facing);
 }
 
 ArchiDom.prototype.addToScene = function(sceneL, sceneR) {
@@ -81,6 +97,9 @@ ArchiDom.setupWorld = function() {
   this.strideY = 100;
   this.strideZ = 100;
   this.strideX = 15;
+  this.numStepsY = 12;
+  this.numStepsX = 12;
+  this.numStepsZ = 12;
 }
 
 function initCssRenderer() {
@@ -135,6 +154,7 @@ function init() {
   sceneL = new THREE.Scene();
   sceneR = new THREE.Scene();
   initCssRenderer();
+  ArchiDom.setupWorld();
 
   camera = new THREE.PerspectiveCamera(90, 1, 0.001, 10000);
   camera.position.set(0, 0, 0);
