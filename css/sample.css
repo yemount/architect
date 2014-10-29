@@ -1,5 +1,21 @@
+body div {
+	width: 120px;
+	height: 120px;
+	font-size: 20pt;
+}
+
 #block1 {
-	background: red;
-	width: 250px;
-	height: 250px;
+	background-color: white;
+}
+
+#block2 {
+	background-color: yellow;
+}
+
+#block3 {
+	background-color: red;
+}
+
+#block4 {
+	background-color: blue;
 }

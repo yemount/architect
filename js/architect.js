@@ -30,54 +30,41 @@ ArchiDom.prototype.getArchiCoord = function() {
     var classname = this.dom.classList[i];
     if(hasPrefix(classname, 'archi-x-')) {
       var strs = classname.split('-');
-      this.minCoord.x = parseInt(strs[2]);
-      this.maxCoord.x = parseInt(strs[3]);
+      this.minCoord.x = parseFloat(strs[2]);
+      this.maxCoord.x = parseFloat(strs[3]);
     } else if (hasPrefix(classname, 'archi-y-')) {
       var strs = classname.split('-');
-      this.minCoord.y = parseInt(strs[2]);
-      this.maxCoord.y = parseInt(strs[3]);
+      this.minCoord.y = parseFloat(strs[2]);
+      this.maxCoord.y = parseFloat(strs[3]);
     }
   }
+  this.minCoord.z = 500;
+  this.maxCoord.z = 500;
 }
 
 ArchiDom.prototype.getHelixCoord = function() {
-  this.eucCoord = new THREE.Vector3();
-  // theta
-  this.eucCoord.x = ((this.minCoord.x + this.maxCoord.x) / 2 - ArchiDom.numStepsX / 2) * ArchiDom.strideX;
-  // height
-  this.eucCoord.y = ((this.minCoord.y + this.maxCoord.y) / 2 - ArchiDom.numStepsY / 2) * ArchiDom.strideY;
-  // depth
-  this.eucCoord.z = 5000;
-}
+  var archiToEucCoord = function (x, y , z) {
+    var depth = z;
+    var height = 0 * ArchiDom.strideY; // TODO
+    var theta = -(x - ArchiDom.numStepsX / 2) * ArchiDom.strideX * Math.PI / 180;
+    return new THREE.Vector3(depth * Math.sin(theta), height, depth * Math.cos(theta));
+  }
 
-function setHelixPosition(object, height, angle, radius) {
+  var v1 = archiToEucCoord(this.minCoord.x, this.minCoord.y, this.minCoord.z);
+  var v2 = archiToEucCoord(this.maxCoord.x, this.minCoord.y, this.minCoord.z);
 
-  var phi = angle * Math.PI / 180;
-
-  object.position.x = radius * Math.sin( phi );
-  object.position.y = height;
-  object.position.z = radius * Math.cos( phi );
-
-  var vector = new THREE.Vector3();
-  vector.x = 0;
-  vector.y = object.position.y;
-  vector.z = 0;
-
-  object.lookAt( vector );
+  this.eucCoord = new THREE.Vector3().addVectors(v1, v2).divideScalar(2);
+  this.eucLength = new THREE.Vector3().subVectors(v2, v1).length();
 }
 
 ArchiDom.prototype.transform = function(obj) {
-  stat.innerHTML = this.eucCoord.x + " " + this.eucCoord.y + " " + this.eucCoord.z;
-  var theta = this.eucCoord.x;
-  var height = this.eucCoord.y;
-
-  obj.position.x = this.eucCoord.z * Math.sin(theta);
-  obj.position.y = height;
-  obj.position.z = this.eucCoord.z * Math.cos(theta);
+  obj.position.x = this.eucCoord.x;
+  obj.position.y = this.eucCoord.y;
+  obj.position.z = this.eucCoord.z;
 
   var facing = new THREE.Vector3();
   facing.x = 0;
-  facing.y = height;
+  facing.y = this.eucCoord.y;
   facing.z = 0;
 
   obj.lookAt(facing);
