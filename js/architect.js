@@ -8,10 +8,15 @@ var statDiv = document.getElementById('stat');
 
 var clock = new THREE.Clock();
 
-// String utils
+// Utils
 
 function hasPrefix(str, prefix) {
   return str.indexOf(prefix) == 0;
+}
+
+// convert length in euc coord system to pixels. Calibrated based on pixel length on radius 500 sphere.
+function e2px(eLen) {
+  return eLen * 91 * 2 / 183.0127;
 }
 
 // Architect code
@@ -45,16 +50,20 @@ ArchiDom.prototype.getArchiCoord = function() {
 ArchiDom.prototype.getHelixCoord = function() {
   var archiToEucCoord = function (x, y , z) {
     var depth = z;
-    var height = 0 * ArchiDom.strideY; // TODO
+    var phi = (y - ArchiDom.numStepsY / 2) * ArchiDom.strideY * Math.PI / 180;
     var theta = -(x - ArchiDom.numStepsX / 2) * ArchiDom.strideX * Math.PI / 180;
-    return new THREE.Vector3(depth * Math.sin(theta), height, depth * Math.cos(theta));
+    return new THREE.Vector3(depth * Math.sin(theta), depth * Math.sin(phi), depth * Math.cos(theta));
   }
 
   var v1 = archiToEucCoord(this.minCoord.x, this.minCoord.y, this.minCoord.z);
-  var v2 = archiToEucCoord(this.maxCoord.x, this.minCoord.y, this.minCoord.z);
+  var v2 = archiToEucCoord(this.maxCoord.x, this.maxCoord.y, this.minCoord.z);
+  var v0 = archiToEucCoord(this.maxCoord.x, this.minCoord.y, this.minCoord.z);
 
   this.eucCoord = new THREE.Vector3().addVectors(v1, v2).divideScalar(2);
-  this.eucLength = new THREE.Vector3().subVectors(v2, v1).length();
+  this.eucLengthX = (new THREE.Vector3().subVectors(v1, v0)).length();
+  this.eucLengthY = (new THREE.Vector3().subVectors(v2, v0)).length();
+  this.dom.style.width = e2px(this.eucLengthX) + 'px';
+  this.dom.style.height = e2px(this.eucLengthY) + 'px';
 }
 
 ArchiDom.prototype.transform = function(obj) {
@@ -63,9 +72,6 @@ ArchiDom.prototype.transform = function(obj) {
   obj.position.z = this.eucCoord.z;
 
   var facing = new THREE.Vector3();
-  facing.x = 0;
-  facing.y = this.eucCoord.y;
-  facing.z = 0;
 
   obj.lookAt(facing);
 }
@@ -81,7 +87,7 @@ ArchiDom.prototype.addToScene = function(sceneL, sceneR) {
 }
 
 ArchiDom.setupWorld = function() {
-  this.strideY = 100;
+  this.strideY = 15;
   this.strideZ = 100;
   this.strideX = 15;
   this.numStepsY = 12;
